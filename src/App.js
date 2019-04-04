@@ -1,28 +1,55 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from "react";
+import DojoDossier from "./containers/DojoDossier";
+import axios from "axios";
+import "./App.css";
+import io from "socket.io-client";
+import { connect } from "react-redux";
+import { tabUpdate } from "./redux";
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+
+    this.socket = io("http://localhost:1337");
+  }
+
+  componentDidMount = () => {
+    this.socket.on("greeting", data => {
+      //4
+      console.log("CLIENT > socket.on greeting");
+      console.log(data.msg); //5
+      this.socket.emit("thankyou", { msg: "Thank you for connecting me! -Client" });
+    });
+
+    this.socket.on("dataUpdated", data => {
+      //4
+      this.props.tabUpdate(data.data);
+      console.log("dataUpdated");
+    });
+
+    axios.get("http://localhost:1337/getTab").then(resp => {
+      this.props.tabUpdate(resp.data);
+    });
+  };
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div>
+        <DojoDossier />
       </div>
     );
   }
 }
 
-export default App;
+const mapStateToProps = state => ({
+  tabs: state.tabs,
+  tabIndex: state.tabIndex
+});
+
+const mapDispatchToProps = dispatch => ({
+  tabUpdate: payload => dispatch(tabUpdate(payload))
+});
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(App);
